@@ -1,0 +1,1 @@
+BACKEND OK 200 {"app":"CIVICOS","status":"running","version":"1.0.0"}

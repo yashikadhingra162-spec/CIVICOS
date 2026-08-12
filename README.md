@@ -1,4 +1,4 @@
-# 🏙️ CIVICOS — Help Rebuild Your City
+`# 🏙️ CIVICOS — Help Rebuild Your City
 
 A working end-to-end hackathon MVP that connects **Citizen → AI → Civic Priority Engine → Command Center → Resolution Verification**.
 

@@ -8,12 +8,12 @@ import CommandCenter from './pages/CommandCenter.jsx';
 import EnvironmentalMap from './pages/EnvironmentalMap.jsx';
 
 const NAV = [
-  { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/report', label: 'Report Issue', icon: '📢' },
-  { to: '/nearby', label: 'Nearby Issues', icon: '📍' },
-  { to: '/my-reports', label: 'My Reports', icon: '📋' },
-  { to: '/command-center', label: 'Command Center', icon: '🛰️' },
-  { to: '/environmental', label: 'Environmental Map', icon: '🌱' },
+  { to: '/', label: 'Home', icon: '⌂' },
+  { to: '/report', label: 'Report Issue', icon: '＋' },
+  { to: '/nearby', label: 'Nearby Issues', icon: '⌖' },
+  { to: '/my-reports', label: 'My Reports', icon: '▤' },
+  { to: '/command-center', label: 'Command Center', icon: '◈' },
+  { to: '/environmental', label: 'Environmental Map', icon: '✦' },
 ];
 
 export default function App() {
@@ -21,8 +21,11 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          🏙️ <span>CIVICOS</span>
+          <span className="brand-mark">🏙️</span>
+          <span>CIVICOS</span>
         </div>
+
+        <div className="nav-section-label">NAVIGATION</div>
         {NAV.map((n) => (
           <NavLink
             key={n.to}
@@ -34,6 +37,14 @@ export default function App() {
             <span className="nav-label">{n.label}</span>
           </NavLink>
         ))}
+
+        <div className="sidebar-status">
+          <span className="status-online-dot" />
+          <div>
+            <strong>System online</strong>
+            <small>Civic network active</small>
+          </div>
+        </div>
       </aside>
 
       <main className="main">

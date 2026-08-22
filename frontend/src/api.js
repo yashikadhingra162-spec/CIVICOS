@@ -7,112 +7,25 @@ const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const REPORTS_KEY = 'civicos-my-report-ids';
 const CLUSTER_RADIUS_METERS = 100;
-
 function normalizeStatus(status) { return String(status || 'pending').trim().toLowerCase(); }
 export function statusLabel(status) { return normalizeStatus(status).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function priorityFor(report) { return clamp(Math.round(50 + Number(report.verification_count || 0) * 5 - Number(report.downvote_count || 0) * 10 - Number(report.spam_score || 0) * 0.25), 5, 100); }
 function markerColor(priority) { return priority >= 80 ? '#ef4444' : priority >= 60 ? '#f97316' : priority >= 40 ? '#eab308' : '#22c55e'; }
 function normalizeCategory(category) { return String(category || 'other').trim().toLowerCase(); }
-function distanceMeters(a, b) {
-  const lat1 = Number(a.latitude) * Math.PI / 180;
-  const lat2 = Number(b.latitude) * Math.PI / 180;
-  const dLat = lat2 - lat1;
-  const dLon = (Number(b.longitude) - Number(a.longitude)) * Math.PI / 180;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-function normalizeReport(report) {
-  const priority_score = priorityFor(report);
-  const marker_color = markerColor(priority_score);
-  const originalImages = Array.isArray(report.image_urls) ? report.image_urls.filter(Boolean) : [];
-  const resolutionImages = Array.isArray(report.resolution_image_urls) ? report.resolution_image_urls.filter(Boolean) : [];
-  return {
-    ...report,
-    title: report.title || 'Civic issue',
-    description: report.description || '',
-    status: normalizeStatus(report.status),
-    moderation_status: normalizeStatus(report.moderation_status),
-    priority_score,
-    priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW',
-    marker_color,
-    sidebarColor: marker_color,
-    status_color: marker_color,
-    preview_image: originalImages[0] || null,
-    resolution_images: resolutionImages,
-    all_images: [...originalImages, ...resolutionImages],
-    report_count: 1,
-    department: report.category || 'Civic services',
-    clustered: false,
-    member_reports: [report],
-  };
-}
-
-// Groups connected reports of the SAME category when any two reports are within 100m.
-// Union-find avoids the old coordinate-rounding bug and works correctly across latitude/longitude.
-export function clusterReports(reports, radiusMeters = CLUSTER_RADIUS_METERS) {
-  const items = reports.map(normalizeReport);
-  const parent = items.map((_, i) => i);
-  const find = (i) => parent[i] === i ? i : (parent[i] = find(parent[i]));
-  const join = (a, b) => { a = find(a); b = find(b); if (a !== b) parent[b] = a; };
-  for (let i = 0; i < items.length; i += 1) {
-    if (!Number.isFinite(Number(items[i].latitude)) || !Number.isFinite(Number(items[i].longitude))) continue;
-    for (let j = i + 1; j < items.length; j += 1) {
-      if (normalizeCategory(items[i].category) !== normalizeCategory(items[j].category)) continue;
-      if (!Number.isFinite(Number(items[j].latitude)) || !Number.isFinite(Number(items[j].longitude))) continue;
-      if (distanceMeters(items[i], items[j]) <= radiusMeters) join(i, j);
-    }
-  }
-  const groups = new Map();
-  items.forEach((item, i) => { const root = find(i); const group = groups.get(root) || []; group.push(item); groups.set(root, group); });
-  return Array.from(groups.values()).map((members) => {
-    // Newest report is the representative; the rest remain available in member_reports.
-    const ordered = [...members].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    const representative = ordered[0];
-    if (members.length === 1) return representative;
-    const latitude = members.reduce((sum, item) => sum + Number(item.latitude), 0) / members.length;
-    const longitude = members.reduce((sum, item) => sum + Number(item.longitude), 0) / members.length;
-    // Every corroborating report increases severity by 12 points, capped at 100.
-    const priority_score = clamp(Math.max(...members.map((item) => Number(item.priority_score || 0))) + (members.length - 1) * 12, 5, 100);
-    const marker_color = markerColor(priority_score);
-    const statuses = members.map((item) => item.status);
-    const activeStatus = statuses.find((status) => !['resolved', 'verified', 'rejected'].includes(status)) || representative.status;
-    return {
-      ...representative,
-      id: `cluster:${normalizeCategory(representative.category)}:${members.map((m) => m.id).sort().join('|')}`,
-      latitude,
-      longitude,
-      status: activeStatus,
-      priority_score,
-      priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW',
-      marker_color,
-      sidebarColor: marker_color,
-      status_color: marker_color,
-      report_count: members.length,
-      clustered: true,
-      member_reports: ordered,
-      member_report_ids: ordered.map((item) => item.id),
-      title: `${representative.title} (${members.length} nearby reports)`,
-      description: representative.description,
-    };
-  });
-}
-
+function distanceMeters(a, b) { const lat1 = Number(a.latitude) * Math.PI / 180; const lat2 = Number(b.latitude) * Math.PI / 180; const dLat = lat2 - lat1; const dLon = (Number(b.longitude) - Number(a.longitude)) * Math.PI / 180; const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2; return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)); }
+function normalizeReport(report) { const priority_score = priorityFor(report); const marker_color = markerColor(priority_score); const originalImages = Array.isArray(report.image_urls) ? report.image_urls.filter(Boolean) : []; const resolutionImages = Array.isArray(report.resolution_image_urls) ? report.resolution_image_urls.filter(Boolean) : []; return { ...report, title: report.title || 'Civic issue', description: report.description || '', status: normalizeStatus(report.status), moderation_status: normalizeStatus(report.moderation_status), priority_score, priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW', marker_color, sidebarColor: marker_color, status_color: marker_color, preview_image: originalImages[0] || null, resolution_images: resolutionImages, all_images: [...originalImages, ...resolutionImages], report_count: 1, department: report.category || 'Civic services', clustered: false, member_reports: [report] }; }
+// Groups connected reports of the SAME category when any pair is within 100m. Union-find replaces the old inaccurate 3-decimal coordinate bucketing.
+export function clusterReports(reports, radiusMeters = CLUSTER_RADIUS_METERS) { const items = reports.map(normalizeReport); const parent = items.map((_, i) => i); const find = (i) => parent[i] === i ? i : (parent[i] = find(parent[i])); const join = (a, b) => { a = find(a); b = find(b); if (a !== b) parent[b] = a; }; for (let i = 0; i < items.length; i += 1) { if (!Number.isFinite(Number(items[i].latitude)) || !Number.isFinite(Number(items[i].longitude))) continue; for (let j = i + 1; j < items.length; j += 1) { if (normalizeCategory(items[i].category) !== normalizeCategory(items[j].category)) continue; if (!Number.isFinite(Number(items[j].latitude)) || !Number.isFinite(Number(items[j].longitude))) continue; if (distanceMeters(items[i], items[j]) <= radiusMeters) join(i, j); } } const groups = new Map(); items.forEach((item, i) => { const root = find(i); const group = groups.get(root) || []; group.push(item); groups.set(root, group); }); return Array.from(groups.values()).map((members) => { const ordered = [...members].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)); const representative = ordered[0]; if (members.length === 1) return representative; const latitude = members.reduce((sum, item) => sum + Number(item.latitude), 0) / members.length; const longitude = members.reduce((sum, item) => sum + Number(item.longitude), 0) / members.length; const priority_score = clamp(Math.max(...members.map((item) => Number(item.priority_score || 0))) + (members.length - 1) * 12, 5, 100); const marker_color = markerColor(priority_score); const statuses = members.map((item) => item.status); const activeStatus = statuses.find((status) => !['resolved', 'verified', 'rejected'].includes(status)) || representative.status; return { ...representative, id: `cluster:${normalizeCategory(representative.category)}:${members.map((m) => m.id).sort().join('|')}`, latitude, longitude, status: activeStatus, priority_score, priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW', marker_color, sidebarColor: marker_color, status_color: marker_color, report_count: members.length, clustered: true, member_reports: ordered, member_report_ids: ordered.map((item) => item.id), title: `${representative.title} (${members.length} nearby reports)`, description: representative.description }; }); }
 function inferCategory(description) { const text = description.toLowerCase(); if (/pothole|road|street/.test(text)) return 'roads'; if (/garbage|waste|trash|dump/.test(text)) return 'waste'; if (/water|drain|sewer|flood|leak/.test(text)) return 'water'; if (/light|electric|power|wire/.test(text)) return 'utilities'; if (/tree|park|pollution|environment/.test(text)) return 'environment'; if (/traffic|signal|crossing|accident/.test(text)) return 'traffic'; return 'other'; }
 function makeTitle(description) { const compact = description.trim().replace(/\s+/g, ' '); return !compact ? 'Civic issue' : compact.length > 72 ? `${compact.slice(0, 69).trim()}...` : compact; }
 function getStoredReportIds() { try { return JSON.parse(localStorage.getItem(REPORTS_KEY) || '[]'); } catch { return []; } }
 function rememberReport(id) { localStorage.setItem(REPORTS_KEY, JSON.stringify(Array.from(new Set([id, ...getStoredReportIds()])).slice(0, 100))); }
 function forgetReport(id) { localStorage.setItem(REPORTS_KEY, JSON.stringify(getStoredReportIds().filter((storedId) => storedId !== id))); }
 function getVoterFingerprint() { const key = 'civicos-voter-fingerprint'; let fingerprint = localStorage.getItem(key); if (!fingerprint) { fingerprint = crypto.randomUUID(); localStorage.setItem(key, fingerprint); } return fingerprint; }
-
-export async function getIncidents(params = '') {
-  const search = new URLSearchParams(params.startsWith('?') ? params.slice(1) : params);
-  const requestedStatus = search.get('status');
-  let query = supabase.from('reports').select('*').eq('moderation_status', 'approved').order('created_at', { ascending: false });
-  if (requestedStatus) query = query.eq('status', normalizeStatus(requestedStatus));
-  const { data, error } = await query;
-  if (error) throw error;
-  return { incidents: clusterReports(data || []) };
-}
+async function fetchApprovedReports(params = '') { const search = new URLSearchParams(params.startsWith('?') ? params.slice(1) : params); const requestedStatus = search.get('status'); let query = supabase.from('reports').select('*').eq('moderation_status', 'approved').order('created_at', { ascending: false }); if (requestedStatus) query = query.eq('status', normalizeStatus(requestedStatus)); const { data, error } = await query; if (error) throw error; return data || []; }
+export async function getIncidents(params = '') { return { incidents: clusterReports(await fetchApprovedReports(params)) }; }
+// Admin actions must always receive real database IDs, never synthetic cluster IDs.
+export async function getRawIncidents(params = '') { return { incidents: (await fetchApprovedReports(params)).map(normalizeReport) }; }
 export async function getMyReports() { const ids = getStoredReportIds(); if (!ids.length) return { incidents: [] }; const { data, error } = await supabase.from('reports').select('*').in('id', ids).order('created_at', { ascending: false }); if (error) throw error; return { incidents: clusterReports(data || []) }; }
 export async function getIncident(id) { const { data, error } = await supabase.from('reports').select('*').eq('id', id).single(); if (error) throw error; return normalizeReport(data); }
 export async function getStats() { const { data, error } = await supabase.from('reports').select('*').eq('moderation_status', 'approved'); if (error) throw error; return clusterReports(data || []).reduce((stats, report) => { const priority = report.priority_score; if (priority >= 80) stats.critical += 1; else if (priority >= 60) stats.high += 1; else if (priority >= 40) stats.medium += 1; if (['resolved', 'verified'].includes(normalizeStatus(report.status))) stats.resolved += 1; return stats; }, { critical: 0, high: 0, medium: 0, resolved: 0 }); }

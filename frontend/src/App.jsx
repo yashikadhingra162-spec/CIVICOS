@@ -35,16 +35,46 @@ function ProtectedAdmin() {
 }
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">C</span><span>CIVICOS</span></div>
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={() => setSidebarOpen((open) => !open)}
+        aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
+        aria-expanded={sidebarOpen}
+      >
+        <span /><span /><span />
+      </button>
+
+      <div
+        className={`sidebar-backdrop ${sidebarOpen ? 'is-visible' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
+      <aside className={`sidebar ${sidebarOpen ? 'is-open' : ''}`} aria-label="Primary navigation">
+        <div className="sidebar-header">
+          <div className="brand"><span className="brand-mark">C</span><span>CIVICOS</span></div>
+          <button type="button" className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close navigation">×</button>
+        </div>
         <div className="nav-section-label">NAVIGATION</div>
         {NAV.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
             end={n.to === '/'}
+            onClick={() => setSidebarOpen(false)}
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <span>{n.icon}</span><span className="nav-label">{n.label}</span>

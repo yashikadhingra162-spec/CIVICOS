@@ -18,7 +18,7 @@ export default function NearbyIssues() {
 
   return (
     <div>
-      <div className="page-title">Nearby Issues 📍</div>
+      <div className="page-title">Nearby Issues</div>
       <div className="page-sub">Interactive civic map of reported issues.</div>
 
       <div className="flex between items-center mb">
@@ -41,7 +41,7 @@ export default function NearbyIssues() {
         <span><span className="dot" style={{ background: '#ef4444' }} /> Critical (80+)</span>
         <span><span className="dot" style={{ background: '#f97316' }} /> High (60-79)</span>
         <span><span className="dot" style={{ background: '#eab308' }} /> Medium (40-59)</span>
-<span><span className="dot" style={{ background: '#22c55e' }} /> Low ({'<'}40)</span>
+        <span><span className="dot" style={{ background: '#22c55e' }} /> Low ({'<'}40)</span>
       </div>
     </div>
   );

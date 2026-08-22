@@ -1,7 +1,6 @@
 import React from 'react';
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import Home from './pages/Home.jsx';
-import Explore from './pages/Explore.jsx';
 import ReportIssue from './pages/ReportIssue.jsx';
 import NearbyIssues from './pages/NearbyIssues.jsx';
 import MyReports from './pages/MyReports.jsx';
@@ -10,7 +9,6 @@ import EnvironmentalMap from './pages/EnvironmentalMap.jsx';
 
 const NAV = [
   { to: '/', label: 'Home', icon: '⌂' },
-  { to: '/explore', label: 'Explore', icon: '◉' },
   { to: '/report', label: 'Report Issue', icon: '＋' },
   { to: '/nearby', label: 'Nearby Issues', icon: '⌖' },
   { to: '/my-reports', label: 'My Reports', icon: '▤' },
@@ -34,7 +32,6 @@ export default function App() {
       <main className="main">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/explore" element={<Explore />} />
           <Route path="/report" element={<ReportIssue />} />
           <Route path="/nearby" element={<NearbyIssues />} />
           <Route path="/my-reports" element={<MyReports />} />

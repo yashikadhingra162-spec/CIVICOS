@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from database import get_db
 from models import Report, Incident, User
 from schemas import ReportCreate
@@ -11,12 +12,25 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 
 
 def _get_or_create_user(db: Session, name: str):
-    user = db.query(User).filter(User.name == name).first()
-    if not user:
-        user = User(name=name, email=f"{name.replace(' ', '').lower()}@civicos.app")
-        db.add(user)
+    clean_name = (name or "citizen").strip() or "citizen"
+    email = f"{clean_name.replace(' ', '').lower()}@civicos.app"
+    user = db.query(User).filter(User.name == clean_name).first()
+    if user:
+        return user
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        return user
+    user = User(name=clean_name, email=email)
+    db.add(user)
+    try:
         db.commit()
-        db.refresh(user)
+    except IntegrityError:
+        db.rollback()
+        user = db.query(User).filter(User.email == email).first() or db.query(User).filter(User.name == clean_name).first()
+        if user:
+            return user
+        raise
+    db.refresh(user)
     return user
 
 
@@ -37,8 +51,6 @@ def _serialize_report(r):
 @router.post("")
 def create_report(payload: ReportCreate, request: Request, db: Session = Depends(get_db)):
     """Anonymous report pipeline with abuse checks, AI classification and duplicate merging."""
-    # Privacy-preserving abuse control: the client address is used only as a
-    # temporary rate-limit key and is not stored as part of the Report model.
     client_key = request.client.host if request.client else "unknown"
     forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
     if forwarded:

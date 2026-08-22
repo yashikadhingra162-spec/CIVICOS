@@ -10,7 +10,29 @@ function normalizeStatus(status) { return String(status || 'pending').trim().toL
 export function statusLabel(status) { return normalizeStatus(status).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function priorityFor(report) { return clamp(Math.round(50 + Number(report.verification_count || 0) * 5 - Number(report.downvote_count || 0) * 10 - Number(report.spam_score || 0) * 0.25), 5, 100); }
 function markerColor(priority) { return priority >= 80 ? '#ef4444' : priority >= 60 ? '#f97316' : priority >= 40 ? '#eab308' : '#22c55e'; }
-function normalizeReport(report) { const priority_score = priorityFor(report); const marker_color = markerColor(priority_score); return { ...report, title: report.title || 'Civic issue', description: report.description || '', status: normalizeStatus(report.status), moderation_status: normalizeStatus(report.moderation_status), priority_score, priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW', marker_color, sidebarColor: marker_color, status_color: marker_color, preview_image: Array.isArray(report.image_urls) ? report.image_urls.find(Boolean) || null : null, report_count: Math.max(1, Number(report.verification_count || 0) + 1), department: report.category || 'Civic services' }; }
+function normalizeReport(report) {
+  const priority_score = priorityFor(report);
+  const marker_color = markerColor(priority_score);
+  const originalImages = Array.isArray(report.image_urls) ? report.image_urls.filter(Boolean) : [];
+  const resolutionImages = Array.isArray(report.resolution_image_urls) ? report.resolution_image_urls.filter(Boolean) : [];
+  return {
+    ...report,
+    title: report.title || 'Civic issue',
+    description: report.description || '',
+    status: normalizeStatus(report.status),
+    moderation_status: normalizeStatus(report.moderation_status),
+    priority_score,
+    priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW',
+    marker_color,
+    sidebarColor: marker_color,
+    status_color: marker_color,
+    preview_image: originalImages[0] || null,
+    resolution_images: resolutionImages,
+    all_images: [...originalImages, ...resolutionImages],
+    report_count: Math.max(1, Number(report.verification_count || 0) + 1),
+    department: report.category || 'Civic services',
+  };
+}
 function inferCategory(description) { const text = description.toLowerCase(); if (/pothole|road|street/.test(text)) return 'roads'; if (/garbage|waste|trash|dump/.test(text)) return 'waste'; if (/water|drain|sewer|flood|leak/.test(text)) return 'water'; if (/light|electric|power|wire/.test(text)) return 'utilities'; if (/tree|park|pollution|environment/.test(text)) return 'environment'; if (/traffic|signal|crossing|accident/.test(text)) return 'traffic'; return 'other'; }
 function makeTitle(description) { const compact = description.trim().replace(/\s+/g, ' '); return !compact ? 'Civic issue' : compact.length > 72 ? `${compact.slice(0, 69).trim()}...` : compact; }
 function getStoredReportIds() { try { return JSON.parse(localStorage.getItem(REPORTS_KEY) || '[]'); } catch { return []; } }
@@ -30,9 +52,6 @@ async function adminRequest(path, options = {}) { const response = await fetch(`
 export const adminLogin = (password) => adminRequest('login', { method: 'POST', body: JSON.stringify({ password }) });
 export const adminSession = () => adminRequest('session', { method: 'GET' });
 export const adminLogout = () => adminRequest('logout', { method: 'POST' });
-
-// Command Centre mutations are deliberately routed through the authenticated
-// server endpoint so public visitors cannot change report workflow states.
 export const assignIncident = (id, payload = {}) => adminRequest(`reports/${encodeURIComponent(id)}/assign`, { method: 'PATCH', body: JSON.stringify(payload) });
 export const setStatus = (id, status) => adminRequest(`reports/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const verifyIncident = (id, payload = {}) => adminRequest(`reports/${encodeURIComponent(id)}/verify`, { method: 'POST', body: JSON.stringify(payload) });

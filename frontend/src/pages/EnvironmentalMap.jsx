@@ -25,7 +25,7 @@ export default function EnvironmentalMap() {
 
   return (
     <div>
-      <div className="page-title">Environmental Intelligence 🌱</div>
+      <div className="page-title">Environmental Intelligence</div>
       <div className="page-sub">Waste, water & green-space hotspots detected from citizen reports.</div>
 
       <div className="flex gap wrap mb">
@@ -50,7 +50,7 @@ export default function EnvironmentalMap() {
       <div className="grid mt" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
         {hotspots.map((h, i) => (
           <div className="card" key={i}>
-            <div style={{ fontSize: 28 }}>⚠️</div>
+            <div className="hotspot-label">Hotspot</div>
             <h4 style={{ margin: '8px 0' }}>{h.category.replace(/_/g, ' ').toLowerCase()} hotspot</h4>
             <p className="muted">
               <b>{h.report_count}</b> reports · <b>{h.locations}</b> locations

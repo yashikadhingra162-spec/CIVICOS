@@ -26,6 +26,27 @@ const actions = [
   },
 ];
 
+const howItWorks = [
+  {
+    number: '01',
+    icon: '▢',
+    title: 'Report an Issue',
+    text: 'Snap a photo, add a location and describe the civic problem in your area.',
+  },
+  {
+    number: '02',
+    icon: '♧',
+    title: 'Track Progress',
+    text: 'Follow public reports as their status is updated and action is taken.',
+  },
+  {
+    number: '03',
+    icon: '↗',
+    title: 'See Results',
+    text: 'Watch reported issues move toward resolution and help build a better community together.',
+  },
+];
+
 export default function Home() {
   return (
     <div className="home-page home-refined">
@@ -40,6 +61,23 @@ export default function Home() {
             <Link to="/report" className="btn btn-primary">＋ REPORT AN ISSUE</Link>
             <Link to="/nearby" className="btn btn-secondary">⌖ EXPLORE NEARBY ISSUES</Link>
           </div>
+        </div>
+      </section>
+
+      <section className="civ-how" aria-labelledby="how-it-works-heading">
+        <div className="civ-how-head">
+          <h2 id="how-it-works-heading">How CIVICOS Works</h2>
+          <p>Simple, transparent, and effective civic engagement in three easy steps</p>
+        </div>
+        <div className="civ-how-grid">
+          {howItWorks.map((step) => (
+            <article className="civ-step" key={step.number}>
+              <span className="civ-step-number">{step.number}</span>
+              <span className="civ-step-icon" aria-hidden="true">{step.icon}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </article>
+          ))}
         </div>
       </section>
 

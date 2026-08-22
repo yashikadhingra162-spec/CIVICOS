@@ -1,0 +1,54 @@
+/* Hidden slide-out navigation drawer */
+.app-shell { display:block; }
+.sidebar {
+  position:fixed;
+  top:0;
+  left:0;
+  height:100dvh;
+  width:min(290px, calc(100vw - 44px));
+  z-index:1200;
+  transform:translateX(-105%);
+  transition:transform .32s cubic-bezier(.22,1,.36,1), box-shadow .32s ease;
+  box-shadow:24px 0 70px rgba(0,0,0,.28);
+}
+.sidebar.is-open {
+  transform:translateX(0);
+  box-shadow:24px 0 70px rgba(0,0,0,.42);
+}
+.sidebar-toggle {
+  position:fixed;
+  top:18px;
+  left:18px;
+  z-index:1150;
+  width:46px;
+  height:46px;
+  display:grid;
+  place-content:center;
+  gap:5px;
+  border:1px solid rgba(148,163,184,.18);
+  border-radius:14px;
+  background:rgba(7,17,31,.84);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  color:var(--text);
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+  cursor:pointer;
+  transition:transform .2s ease, border-color .2s ease, background .2s ease;
+}
+.sidebar-toggle:hover { transform:translateY(-1px); border-color:var(--border-strong); background:rgba(15,30,50,.96); }
+.sidebar-toggle:active { transform:scale(.96); }
+.sidebar-toggle span { display:block; width:19px; height:2px; border-radius:999px; background:#dcecff; transition:transform .25s ease, opacity .2s ease; }
+.sidebar-header { display:flex; align-items:center; justify-content:space-between; }
+.sidebar-header .brand { margin-bottom:14px; flex:1; }
+.sidebar-close { width:34px; height:34px; border:1px solid var(--border); border-radius:10px; background:rgba(148,163,184,.06); color:var(--muted); font-size:24px; line-height:1; cursor:pointer; transition:.2s ease; }
+.sidebar-close:hover { color:var(--text); border-color:var(--border-strong); background:rgba(56,189,248,.08); }
+.sidebar-backdrop { position:fixed; inset:0; z-index:1190; background:rgba(2,8,23,.5); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .28s ease, visibility .28s ease; }
+.sidebar-backdrop.is-visible { opacity:1; visibility:visible; pointer-events:auto; }
+.main { width:100%; padding-top:88px; }
+@media (max-width:640px) {
+  .sidebar-toggle { top:12px; left:12px; width:43px; height:43px; border-radius:13px; }
+  .main { padding-top:76px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .sidebar, .sidebar-backdrop, .sidebar-toggle, .sidebar-toggle span { transition:none !important; }
+}

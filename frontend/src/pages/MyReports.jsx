@@ -16,7 +16,7 @@ export default function MyReports() {
 
   return (
     <div>
-      <div className="page-title">My Reports 📋</div>
+      <div className="page-title">My Reports</div>
       <div className="page-sub">Track civic incidents from submission to verified resolution.</div>
 
       <div className="flex gap wrap mb">

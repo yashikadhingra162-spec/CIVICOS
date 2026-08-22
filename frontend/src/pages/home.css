@@ -1,0 +1,33 @@
+/* CIVICOS homepage refinement — dark only */
+.home-page { width:100%; max-width:none; padding-bottom:28px; }
+.home-refined { overflow:hidden; }
+.home-refined .civ-hero { position:relative; min-height:clamp(460px,62vh,690px); display:flex; align-items:center; border-bottom:1px solid var(--border); isolation:isolate; padding:72px clamp(8px,3vw,36px) 64px; }
+.home-refined .civ-hero::before { content:''; position:absolute; width:min(680px,72vw); height:360px; left:50%; top:0; transform:translateX(-50%); background:radial-gradient(ellipse,rgba(56,189,248,.12),rgba(56,189,248,.035) 46%,transparent 72%); filter:blur(20px); pointer-events:none; z-index:-1; }
+.civ-hero-content { width:min(900px,100%); margin:0 auto; text-align:center; }
+.civ-eyebrow { display:inline-flex; align-items:center; gap:8px; color:#7fb7ec; font-size:10px; font-weight:800; letter-spacing:.17em; border:1px solid rgba(56,189,248,.22); border-radius:999px; padding:8px 13px; background:rgba(15,30,50,.6); }
+.civ-eyebrow-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 14px rgba(56,189,248,.7); }
+.civ-hero h1 { margin:24px auto 0; max-width:850px; font-family:'Space Grotesk',sans-serif; font-size:clamp(44px,7vw,82px); line-height:.98; letter-spacing:-.065em; color:var(--text); }
+.civ-hero h1 .accent { color:#76b7ff; text-shadow:0 0 34px rgba(56,189,248,.18); }
+.civ-hero-copy { max-width:690px; margin:23px auto 0; color:var(--muted); font-size:clamp(15px,1.7vw,18px); line-height:1.7; }
+.civ-hero-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:12px; margin-top:31px; }
+.civ-hero-actions .btn { min-height:50px; }
+.civ-section { width:min(1180px,100%); margin:0 auto; padding:68px clamp(8px,3vw,36px) 0; }
+.civ-section-head { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:23px; }
+.civ-section-kicker { display:block; color:#60748b; font-size:10px; font-weight:800; letter-spacing:.18em; margin-bottom:8px; }
+.civ-section-head h2 { font-family:'Space Grotesk',sans-serif; font-size:clamp(30px,4vw,48px); letter-spacing:-.055em; line-height:1; }
+.civ-section-head p { max-width:390px; color:var(--muted); font-size:14px; line-height:1.65; text-align:right; }
+.civ-tools { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.civ-tool { position:relative; min-height:245px; padding:24px; display:flex; flex-direction:column; border:1px solid var(--border); border-radius:16px; background:linear-gradient(145deg,rgba(18,30,47,.86),rgba(10,19,32,.9)); overflow:hidden; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease; }
+.civ-tool::after { content:''; position:absolute; inset:auto -45px -60px auto; width:160px; height:160px; border-radius:50%; background:rgba(56,189,248,.045); filter:blur(8px); }
+.civ-tool:hover { transform:translateY(-4px); border-color:rgba(56,189,248,.35); box-shadow:0 20px 42px rgba(0,0,0,.2); }
+.civ-tool-icon { width:46px; height:46px; display:grid; place-items:center; border-radius:13px; color:#7ec5ff; background:rgba(56,189,248,.1); border:1px solid rgba(56,189,248,.1); font-size:22px; }
+.civ-tool h3 { margin-top:20px; font-family:'Space Grotesk',sans-serif; font-size:19px; letter-spacing:-.03em; }
+.civ-tool p { margin-top:9px; color:var(--muted); font-size:13px; line-height:1.65; max-width:310px; }
+.civ-tool-link { margin-top:auto; padding-top:22px; display:inline-flex; align-items:center; gap:8px; color:#9cd2ff; font-size:13px; font-weight:800; }
+.civ-tool:hover .civ-tool-link { color:#d9efff; }
+.civ-status-strip { width:min(1180px,100%); margin:52px auto 0; padding:0 clamp(8px,3vw,36px); }
+.civ-status-inner { border:1px solid var(--border); border-radius:16px; background:rgba(15,30,50,.5); padding:18px 21px; display:flex; align-items:center; gap:13px; color:var(--muted); font-size:13px; }
+.civ-status-inner strong { color:var(--text); }
+.civ-status-light { width:8px; height:8px; flex:none; border-radius:50%; background:#4ade80; box-shadow:0 0 13px rgba(74,222,128,.65); }
+@media (max-width:900px) { .civ-section-head { align-items:flex-start; flex-direction:column; } .civ-section-head p { text-align:left; } .civ-tools { grid-template-columns:1fr; } .civ-tool { min-height:210px; } }
+@media (max-width:640px) { .home-refined .civ-hero { min-height:auto; padding:56px 0 54px; } .civ-hero h1 { font-size:clamp(40px,13vw,60px); } .civ-hero-actions { flex-direction:column; } .civ-hero-actions .btn { width:100%; } .civ-section { padding-top:52px; } .civ-section-head h2 { font-size:34px; } }

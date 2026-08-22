@@ -20,42 +20,63 @@ const NAV = [
 function ProtectedAdmin() {
   const [state, setState] = useState('checking');
   const location = useLocation();
+
   useEffect(() => {
     let alive = true;
-    adminSession().then((data) => { if (alive) setState(data.authenticated ? 'ok' : 'no'); }).catch(() => { if (alive) setState('no'); });
+    adminSession()
+      .then((data) => { if (alive) setState(data.authenticated ? 'ok' : 'no'); })
+      .catch(() => { if (alive) setState('no'); });
     return () => { alive = false; };
   }, [location.pathname]);
+
   if (state === 'checking') return <div className="card muted">Checking administrator access…</div>;
   if (state !== 'ok') return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   return <Outlet />;
 }
 
-function ThemeToggle() {
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('civicos-theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  });
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('civicos-theme', theme);
-  }, [theme]);
-
-  return (
-    <button
-      className="theme-toggle"
-      type="button"
-      onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-    >
-      <span className="theme-toggle-icon" aria-hidden="true">{theme === 'dark' ? '☀' : '◐'}</span>
-      <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-    </button>
-  );
-}
-
 export default function App() {
-  return <div className="app-shell"><aside className="sidebar"><div className="brand"><span className="brand-mark">C</span><span>CIVICOS</span></div><div className="nav-section-label">NAVIGATION</div>{NAV.map((n) => <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}><span>{n.icon}</span><span className="nav-label">{n.label}</span></NavLink>)}<div className="sidebar-bottom"><ThemeToggle /><div className="sidebar-status"><span className="status-online-dot" /><div><strong>System online</strong><small>Civic network active</small></div></div></div></aside><main className="main"><Routes><Route path="/" element={<Home />} /><Route path="/report" element={<ReportIssue />} /><Route path="/nearby" element={<NearbyIssues />} /><Route path="/my-reports" element={<MyReports />} /><Route path="/admin/login" element={<AdminLogin />} /><Route path="/admin" element={<ProtectedAdmin />}><Route element={<AdminPortal />}><Route index element={<Navigate to="command-center" replace />} /><Route path="command-center" element={<CommandCenter />} /><Route path="environmental" element={<EnvironmentalMap />} /></Route></Route><Route path="/command-center" element={<Navigate to="/admin/command-center" replace />} /><Route path="/environmental" element={<Navigate to="/admin/environmental" replace />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main></div>;
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand"><span className="brand-mark">C</span><span>CIVICOS</span></div>
+        <div className="nav-section-label">NAVIGATION</div>
+        {NAV.map((n) => (
+          <NavLink
+            key={n.to}
+            to={n.to}
+            end={n.to === '/'}
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span>{n.icon}</span><span className="nav-label">{n.label}</span>
+          </NavLink>
+        ))}
+        <div className="sidebar-bottom">
+          <div className="sidebar-status">
+            <span className="status-online-dot" />
+            <div><strong>System online</strong><small>Civic network active</small></div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/report" element={<ReportIssue />} />
+          <Route path="/nearby" element={<NearbyIssues />} />
+          <Route path="/my-reports" element={<MyReports />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<ProtectedAdmin />}>
+            <Route element={<AdminPortal />}>
+              <Route index element={<Navigate to="command-center" replace />} />
+              <Route path="command-center" element={<CommandCenter />} />
+              <Route path="environmental" element={<EnvironmentalMap />} />
+            </Route>
+          </Route>
+          <Route path="/command-center" element={<Navigate to="/admin/command-center" replace />} />
+          <Route path="/environmental" element={<Navigate to="/admin/environmental" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
 }

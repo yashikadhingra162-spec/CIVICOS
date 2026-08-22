@@ -5,8 +5,8 @@ import ElectricGaze from '../components/ElectricGaze.jsx';
 
 const actions = [
   { icon: '⌖', title: 'Nearby Issues', text: 'Explore civic problems around you on the live map.', to: '/nearby', button: 'Explore map' },
-  { icon: '◈', title: 'Command Center', text: 'Monitor priorities, incidents and operational activity.', to: '/command-center', button: 'Open center' },
-  { icon: '✦', title: 'Environmental Map', text: 'Discover hotspots across waste, water and green spaces.', to: '/environmental', button: 'View hotspots' },
+  { icon: '▤', title: 'All Reports', text: 'Browse issues reported by people across the civic network.', to: '/my-reports', button: 'View reports' },
+  { icon: '＋', title: 'Report an Issue', text: 'See something that needs attention? Put it on the map in seconds.', to: '/report', button: 'Create report' },
 ];
 
 export default function Home() {
@@ -17,21 +17,36 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="home-page">
-      <section className="hero">
-        <div className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
-          <span>●</span> CIVIC NETWORK ACTIVE
+    <div className="home-page landing-page">
+      <section className="landing-hero">
+        <div className="landing-glow landing-glow-one" />
+        <div className="landing-glow landing-glow-two" />
+        <div className="landing-hero-inner">
+          <div className="badge landing-badge">
+            <span className="badge-pulse" /> CIVIC NETWORK ACTIVE
+          </div>
+          <h1>Make your city<br />
+            <span>better, together.</span>
+          </h1>
+          <p className="landing-copy">
+            Spot a problem. Report it in seconds. Follow civic issues from discovery to resolution.
+          </p>
+          <div className="landing-actions">
+            <Link to="/report" className="btn btn-primary landing-primary">＋ REPORT A CIVIC ISSUE</Link>
+            <Link to="/nearby" className="btn btn-secondary landing-secondary">⌖ EXPLORE NEARBY ISSUES</Link>
+          </div>
         </div>
-        <h1>Make your city<br /><span>better, together.</span></h1>
-        <p>Spot a problem. Report it in seconds. Follow it from verification to resolution.</p>
-        <Link to="/report">
-          <button className="btn btn-primary" style={{ fontSize: 15, padding: '14px 24px' }}>
-            ＋ REPORT A CIVIC ISSUE
-          </button>
-        </Link>
+
+        {stats && (
+          <div className="landing-stats" aria-label="Live civic statistics">
+            <div className="landing-stat"><strong>{stats.critical}</strong><span>Critical issues</span></div>
+            <div className="landing-stat"><strong>{stats.high}</strong><span>High priority</span></div>
+            <div className="landing-stat"><strong>{stats.resolved}</strong><span>Resolved</span></div>
+          </div>
+        )}
       </section>
 
-      <section className="gaze-section" aria-label="CIVICOS visual identity">
+      <section className="gaze-section landing-gaze" aria-label="CIVICOS visual identity">
         <div className="gaze-art">
           <ElectricGaze
             renderMode="dither"
@@ -64,44 +79,26 @@ export default function Home() {
         </div>
       </section>
 
-      {stats && (
-        <section className="grid grid-3 mb">
-          <div className="card stat-card stat-critical">
-            <div className="stat-icon">!</div>
-            <div><div className="stat-value">{stats.critical}</div><div className="stat-label">Critical issues</div></div>
-            <span className="stat-trend">LIVE</span>
+      <section className="landing-tools">
+        <div className="section-heading landing-section-heading">
+          <div>
+            <span className="eyebrow">CIVIC TOOLS</span>
+            <h2>Everything you need to act</h2>
           </div>
-          <div className="card stat-card stat-high">
-            <div className="stat-icon">↑</div>
-            <div><div className="stat-value">{stats.high}</div><div className="stat-label">High priority</div></div>
-            <span className="stat-trend">ACTIVE</span>
-          </div>
-          <div className="card stat-card stat-resolved">
-            <div className="stat-icon">✓</div>
-            <div><div className="stat-value">{stats.resolved}</div><div className="stat-label">Resolved</div></div>
-            <span className="stat-trend">DONE</span>
-          </div>
-        </section>
-      )}
-
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">CIVIC TOOLS</span>
-          <h2>Stay connected to your city</h2>
+          <p className="muted">Simple tools for reporting, exploring and following what matters around you.</p>
         </div>
-        <Link to="/report" className="muted quick-link">Report something →</Link>
-      </div>
 
-      <div className="grid grid-3">
-        {actions.map((action) => (
-          <div className="card action-card" key={action.to}>
-            <div className="action-icon">{action.icon}</div>
-            <h3>{action.title}</h3>
-            <p className="muted">{action.text}</p>
-            <Link to={action.to}><button className="btn btn-secondary btn-small mt">{action.button} →</button></Link>
-          </div>
-        ))}
-      </div>
+        <div className="grid grid-3">
+          {actions.map((action) => (
+            <div className="card action-card" key={action.to}>
+              <div className="action-icon">{action.icon}</div>
+              <h3>{action.title}</h3>
+              <p className="muted">{action.text}</p>
+              <Link to={action.to}><button className="btn btn-secondary btn-small mt">{action.button} →</button></Link>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -7,7 +7,7 @@ export default function MyReports() {
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
   useEffect(() => { getIncidents().then((d) => setIncidents(d.incidents)).catch((e) => setError(e.message || 'Could not load reports.')); }, []);
-  const filters = ['ALL', 'pending', 'in_progress', 'resolved', 'rejected'];
+  const filters = ['ALL', 'pending', 'resolved'];
   const visible = incidents.filter((inc) => filter === 'ALL' || inc.status === filter);
   return <div>
     <div className="page-title">All Reports</div>

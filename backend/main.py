@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 import database
 from routes import reports, incidents, dashboard, admin, notifications
 
@@ -21,7 +22,12 @@ app.include_router(dashboard.router)
 app.include_router(admin.router)
 app.include_router(notifications.router)
 
+FRONTEND_URL = "https://civicos-6nvfpfvg4-aryan-rais-projects-060f8c7e.vercel.app"
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def root():
+    return RedirectResponse(url=FRONTEND_URL, status_code=307)
+
+@app.get("/health")
+def health():
     return {"app": "CIVICOS", "status": "running", "version": "1.0.0"}

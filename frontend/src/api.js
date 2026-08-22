@@ -28,4 +28,10 @@ export async function voteReport(reportId, voteType = 'verify') { const type = v
 export const assignIncident = async () => { throw new Error('Command Center actions require an authenticated moderation backend.'); };
 export const setStatus = async () => { throw new Error('Command Center actions require an authenticated moderation backend.'); };
 export const verifyIncident = async () => { throw new Error('Command Center actions require an authenticated moderation backend.'); };
+
+async function adminRequest(path, options = {}) { const response = await fetch(`/api/admin/${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.detail || 'Admin authentication failed'); return body; }
+export const adminLogin = (password) => adminRequest('login', { method: 'POST', body: JSON.stringify({ password }) });
+export const adminSession = () => adminRequest('session', { method: 'GET' });
+export const adminLogout = () => adminRequest('logout', { method: 'POST' });
+
 export { supabase };

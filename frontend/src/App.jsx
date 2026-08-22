@@ -21,7 +21,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">🏙️</span>
+          <span className="brand-mark">C</span>
           <span>CIVICOS</span>
         </div>
 

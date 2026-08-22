@@ -10,6 +10,9 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
 def _serialize_incident(i):
+    # Expose one available citizen photo for lightweight map previews.
+    # Full report evidence remains available through the incident detail endpoint.
+    preview_image = next((r.image_url for r in i.reports if r.image_url), "")
     return {
         "id": i.id,
         "title": i.title,
@@ -26,6 +29,7 @@ def _serialize_incident(i):
         "department": i.department,
         "ai_confidence": i.ai_confidence,
         "report_count": len(i.reports),
+        "preview_image": preview_image,
         "created_at": i.created_at.isoformat() if i.created_at else None,
         "updated_at": i.updated_at.isoformat() if i.updated_at else None,
     }

@@ -17,7 +17,7 @@ export default function NearbyIssues() {
     } catch (e) { setError(e.message || 'Could not load reports.'); }
   };
 
-  const statuses = ['', 'pending', 'open', 'verified', 'in_progress', 'resolved'];
+  const statuses = ['', 'pending', 'resolved'];
   return (
     <div>
       <div className="page-title">Nearby Issues</div>

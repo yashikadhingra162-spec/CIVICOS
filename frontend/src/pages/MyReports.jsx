@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { getMyReports, statusLabel } from '../api.js';
+import { getIncidents, statusLabel } from '../api.js';
 
 export default function MyReports() {
   const [incidents, setIncidents] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
-  useEffect(() => { getMyReports().then((d) => setIncidents(d.incidents)).catch((e) => setError(e.message || 'Could not load reports.')); }, []);
+  useEffect(() => { getIncidents().then((d) => setIncidents(d.incidents)).catch((e) => setError(e.message || 'Could not load reports.')); }, []);
   const filters = ['ALL', 'pending', 'open', 'verified', 'in_progress', 'resolved', 'rejected'];
   const visible = incidents.filter((inc) => filter === 'ALL' || inc.status === filter);
   return <div>
     <div className="page-title">All Reports</div>
-    <div className="page-sub">Reports submitted from this browser. Click any report card to view the full problem, photo, location and current status.</div>
+    <div className="page-sub">A live public feed of civic issues reported by everyone. Click any card to view the full problem, photo, location and current status.</div>
     <div className="flex gap wrap mb">{filters.map((s) => <button key={s} className={`btn btn-small ${filter === s ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilter(s)}>{s === 'ALL' ? 'All reports' : statusLabel(s)}</button>)}</div>
     {error && <div className="notice notice-error mb">{error}</div>}
     {!error && visible.length === 0 && <p className="muted">No reports match this filter yet.</p>}

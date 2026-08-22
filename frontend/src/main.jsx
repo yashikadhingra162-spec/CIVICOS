@@ -6,6 +6,7 @@ import './index.css';
 import './batman.css';
 import './polish.css';
 import './makeover.css';
+import './sidebar-drawer.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

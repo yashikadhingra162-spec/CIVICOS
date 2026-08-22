@@ -6,10 +6,21 @@ if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase configuratio
 const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const REPORTS_KEY = 'civicos-my-report-ids';
+const CLUSTER_RADIUS_METERS = 100;
+
 function normalizeStatus(status) { return String(status || 'pending').trim().toLowerCase(); }
 export function statusLabel(status) { return normalizeStatus(status).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function priorityFor(report) { return clamp(Math.round(50 + Number(report.verification_count || 0) * 5 - Number(report.downvote_count || 0) * 10 - Number(report.spam_score || 0) * 0.25), 5, 100); }
 function markerColor(priority) { return priority >= 80 ? '#ef4444' : priority >= 60 ? '#f97316' : priority >= 40 ? '#eab308' : '#22c55e'; }
+function normalizeCategory(category) { return String(category || 'other').trim().toLowerCase(); }
+function distanceMeters(a, b) {
+  const lat1 = Number(a.latitude) * Math.PI / 180;
+  const lat2 = Number(b.latitude) * Math.PI / 180;
+  const dLat = lat2 - lat1;
+  const dLon = (Number(b.longitude) - Number(a.longitude)) * Math.PI / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
 function normalizeReport(report) {
   const priority_score = priorityFor(report);
   const marker_color = markerColor(priority_score);
@@ -29,25 +40,86 @@ function normalizeReport(report) {
     preview_image: originalImages[0] || null,
     resolution_images: resolutionImages,
     all_images: [...originalImages, ...resolutionImages],
-    report_count: Math.max(1, Number(report.verification_count || 0) + 1),
+    report_count: 1,
     department: report.category || 'Civic services',
+    clustered: false,
+    member_reports: [report],
   };
 }
+
+// Groups connected reports of the SAME category when any two reports are within 100m.
+// Union-find avoids the old coordinate-rounding bug and works correctly across latitude/longitude.
+export function clusterReports(reports, radiusMeters = CLUSTER_RADIUS_METERS) {
+  const items = reports.map(normalizeReport);
+  const parent = items.map((_, i) => i);
+  const find = (i) => parent[i] === i ? i : (parent[i] = find(parent[i]));
+  const join = (a, b) => { a = find(a); b = find(b); if (a !== b) parent[b] = a; };
+  for (let i = 0; i < items.length; i += 1) {
+    if (!Number.isFinite(Number(items[i].latitude)) || !Number.isFinite(Number(items[i].longitude))) continue;
+    for (let j = i + 1; j < items.length; j += 1) {
+      if (normalizeCategory(items[i].category) !== normalizeCategory(items[j].category)) continue;
+      if (!Number.isFinite(Number(items[j].latitude)) || !Number.isFinite(Number(items[j].longitude))) continue;
+      if (distanceMeters(items[i], items[j]) <= radiusMeters) join(i, j);
+    }
+  }
+  const groups = new Map();
+  items.forEach((item, i) => { const root = find(i); const group = groups.get(root) || []; group.push(item); groups.set(root, group); });
+  return Array.from(groups.values()).map((members) => {
+    // Newest report is the representative; the rest remain available in member_reports.
+    const ordered = [...members].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const representative = ordered[0];
+    if (members.length === 1) return representative;
+    const latitude = members.reduce((sum, item) => sum + Number(item.latitude), 0) / members.length;
+    const longitude = members.reduce((sum, item) => sum + Number(item.longitude), 0) / members.length;
+    // Every corroborating report increases severity by 12 points, capped at 100.
+    const priority_score = clamp(Math.max(...members.map((item) => Number(item.priority_score || 0))) + (members.length - 1) * 12, 5, 100);
+    const marker_color = markerColor(priority_score);
+    const statuses = members.map((item) => item.status);
+    const activeStatus = statuses.find((status) => !['resolved', 'verified', 'rejected'].includes(status)) || representative.status;
+    return {
+      ...representative,
+      id: `cluster:${normalizeCategory(representative.category)}:${members.map((m) => m.id).sort().join('|')}`,
+      latitude,
+      longitude,
+      status: activeStatus,
+      priority_score,
+      priority_label: priority_score >= 80 ? 'CRITICAL' : priority_score >= 60 ? 'HIGH' : priority_score >= 40 ? 'MEDIUM' : 'LOW',
+      marker_color,
+      sidebarColor: marker_color,
+      status_color: marker_color,
+      report_count: members.length,
+      clustered: true,
+      member_reports: ordered,
+      member_report_ids: ordered.map((item) => item.id),
+      title: `${representative.title} (${members.length} nearby reports)`,
+      description: representative.description,
+    };
+  });
+}
+
 function inferCategory(description) { const text = description.toLowerCase(); if (/pothole|road|street/.test(text)) return 'roads'; if (/garbage|waste|trash|dump/.test(text)) return 'waste'; if (/water|drain|sewer|flood|leak/.test(text)) return 'water'; if (/light|electric|power|wire/.test(text)) return 'utilities'; if (/tree|park|pollution|environment/.test(text)) return 'environment'; if (/traffic|signal|crossing|accident/.test(text)) return 'traffic'; return 'other'; }
 function makeTitle(description) { const compact = description.trim().replace(/\s+/g, ' '); return !compact ? 'Civic issue' : compact.length > 72 ? `${compact.slice(0, 69).trim()}...` : compact; }
 function getStoredReportIds() { try { return JSON.parse(localStorage.getItem(REPORTS_KEY) || '[]'); } catch { return []; } }
 function rememberReport(id) { localStorage.setItem(REPORTS_KEY, JSON.stringify(Array.from(new Set([id, ...getStoredReportIds()])).slice(0, 100))); }
 function forgetReport(id) { localStorage.setItem(REPORTS_KEY, JSON.stringify(getStoredReportIds().filter((storedId) => storedId !== id))); }
 function getVoterFingerprint() { const key = 'civicos-voter-fingerprint'; let fingerprint = localStorage.getItem(key); if (!fingerprint) { fingerprint = crypto.randomUUID(); localStorage.setItem(key, fingerprint); } return fingerprint; }
-export async function getIncidents(params = '') { const search = new URLSearchParams(params.startsWith('?') ? params.slice(1) : params); const requestedStatus = search.get('status'); let query = supabase.from('reports').select('*').eq('moderation_status', 'approved').order('created_at', { ascending: false }); if (requestedStatus) query = query.eq('status', normalizeStatus(requestedStatus)); const { data, error } = await query; if (error) throw error; return { incidents: (data || []).map(normalizeReport) }; }
-export async function getMyReports() { const ids = getStoredReportIds(); if (!ids.length) return { incidents: [] }; const { data, error } = await supabase.from('reports').select('*').in('id', ids).order('created_at', { ascending: false }); if (error) throw error; return { incidents: (data || []).map(normalizeReport) }; }
+
+export async function getIncidents(params = '') {
+  const search = new URLSearchParams(params.startsWith('?') ? params.slice(1) : params);
+  const requestedStatus = search.get('status');
+  let query = supabase.from('reports').select('*').eq('moderation_status', 'approved').order('created_at', { ascending: false });
+  if (requestedStatus) query = query.eq('status', normalizeStatus(requestedStatus));
+  const { data, error } = await query;
+  if (error) throw error;
+  return { incidents: clusterReports(data || []) };
+}
+export async function getMyReports() { const ids = getStoredReportIds(); if (!ids.length) return { incidents: [] }; const { data, error } = await supabase.from('reports').select('*').in('id', ids).order('created_at', { ascending: false }); if (error) throw error; return { incidents: clusterReports(data || []) }; }
 export async function getIncident(id) { const { data, error } = await supabase.from('reports').select('*').eq('id', id).single(); if (error) throw error; return normalizeReport(data); }
-export async function getStats() { const { data, error } = await supabase.from('reports').select('status, spam_score, verification_count, downvote_count').eq('moderation_status', 'approved'); if (error) throw error; return (data || []).reduce((stats, report) => { const priority = priorityFor(report); if (priority >= 80) stats.critical += 1; else if (priority >= 60) stats.high += 1; else if (priority >= 40) stats.medium += 1; if (['resolved', 'verified'].includes(normalizeStatus(report.status))) stats.resolved += 1; return stats; }, { critical: 0, high: 0, medium: 0, resolved: 0 }); }
-export async function getHotspots() { const { data, error } = await supabase.from('reports').select('latitude, longitude, category').eq('moderation_status', 'approved'); if (error) throw error; const groups = new Map(); for (const row of data || []) { if (!Number.isFinite(Number(row.latitude)) || !Number.isFinite(Number(row.longitude))) continue; const key = `${row.category}|${Number(row.latitude).toFixed(3)}|${Number(row.longitude).toFixed(3)}`; const group = groups.get(key) || { category: row.category || 'other', latitude: 0, longitude: 0, report_count: 0, locations: 1 }; group.latitude += Number(row.latitude); group.longitude += Number(row.longitude); group.report_count += 1; groups.set(key, group); } return { hotspots: Array.from(groups.values()).map((g) => ({ ...g, latitude: g.latitude / g.report_count, longitude: g.longitude / g.report_count })) }; }
+export async function getStats() { const { data, error } = await supabase.from('reports').select('*').eq('moderation_status', 'approved'); if (error) throw error; return clusterReports(data || []).reduce((stats, report) => { const priority = report.priority_score; if (priority >= 80) stats.critical += 1; else if (priority >= 60) stats.high += 1; else if (priority >= 40) stats.medium += 1; if (['resolved', 'verified'].includes(normalizeStatus(report.status))) stats.resolved += 1; return stats; }, { critical: 0, high: 0, medium: 0, resolved: 0 }); }
+export async function getHotspots() { const { data, error } = await supabase.from('reports').select('*').eq('moderation_status', 'approved'); if (error) throw error; const clustered = clusterReports(data || []); return { hotspots: clustered.filter((item) => item.report_count > 1).map((item) => ({ category: item.category || 'other', latitude: item.latitude, longitude: item.longitude, report_count: item.report_count, locations: item.report_count, priority_score: item.priority_score })) }; }
 export async function createReport(input) { const id = crypto.randomUUID(); const description = input.description.trim(); const category = input.category || inferCategory(description); const report = { id, title: makeTitle(description), description, category, status: 'pending', latitude: Number(input.latitude), longitude: Number(input.longitude), address: input.address || null, image_urls: input.image_url ? [input.image_url] : [], spam_score: 0, duplicate_score: 0, moderation_status: 'approved', verification_count: 0, downvote_count: 0 }; const { data, error } = await supabase.from('reports').insert(report).select().single(); if (error) throw error; rememberReport(id); return { report_id: id, incident_id: id, report: normalizeReport(data || report) }; }
 export async function deleteReport(reportId) { const { error } = await supabase.from('reports').delete().eq('id', reportId); if (error) throw error; forgetReport(reportId); return true; }
 export async function voteReport(reportId, voteType = 'verify') { const type = voteType === 'upvote' ? 'verify' : voteType === 'downvote' ? 'dispute' : voteType; const { data, error } = await supabase.from('report_votes').insert({ report_id: reportId, vote_type: type, voter_fingerprint: getVoterFingerprint() }).select().single(); if (error) throw error; return data; }
-
 async function adminRequest(path, options = {}) { const response = await fetch(`/api/admin/${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.detail || 'Admin request failed'); return body; }
 export const adminLogin = (password) => adminRequest('login', { method: 'POST', body: JSON.stringify({ password }) });
 export const adminSession = () => adminRequest('session', { method: 'GET' });
@@ -55,5 +127,4 @@ export const adminLogout = () => adminRequest('logout', { method: 'POST' });
 export const assignIncident = (id, payload = {}) => adminRequest(`reports/${encodeURIComponent(id)}/assign`, { method: 'PATCH', body: JSON.stringify(payload) });
 export const setStatus = (id, status) => adminRequest(`reports/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const verifyIncident = (id, payload = {}) => adminRequest(`reports/${encodeURIComponent(id)}/verify`, { method: 'POST', body: JSON.stringify(payload) });
-
 export { supabase };

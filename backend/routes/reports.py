@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Report, Incident, User
 from schemas import ReportCreate
 from services import ai_service, duplicate_service, priority_engine, department_service
+from services.abuse_service import enforce_rate_limit, validate_report_content
 from utils.scoring import score_label
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -34,16 +35,24 @@ def _serialize_report(r):
 
 
 @router.post("")
-def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
-    """Full citizen report pipeline: save -> AI classify -> duplicate check -> merge/create incident."""
+def create_report(payload: ReportCreate, request: Request, db: Session = Depends(get_db)):
+    """Anonymous report pipeline with abuse checks, AI classification and duplicate merging."""
+    # Privacy-preserving abuse control: the client address is used only as a
+    # temporary rate-limit key and is not stored as part of the Report model.
+    client_key = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if forwarded:
+        client_key = forwarded
+    enforce_rate_limit(client_key)
+    validate_report_content(payload.description, payload.website)
+
     user = _get_or_create_user(db, payload.user_name)
 
-    # AI text analysis
     analysis = ai_service.analyze_text(payload.description)
     category = payload.category or analysis["category"]
-    img_cat, img_conf = ai_service.classify_image(image_url=payload.image_url,
-                                                  filename=payload.image_url or "")
-    # Blend: if user provided no category, prefer image category when confident.
+    img_cat, img_conf = ai_service.classify_image(
+        image_url=payload.image_url, filename=payload.image_url or ""
+    )
     if not payload.category and img_conf > analysis["confidence"]:
         category = img_cat
     confidence = max(analysis["confidence"], img_conf)
@@ -60,11 +69,9 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
     )
     db.add(report)
 
-    # Duplicate detection against existing active incidents
     incident, prob, breakdown = duplicate_service.find_duplicate(db, report)
     if incident:
         incident.reports.append(report)
-        # Recompute priority since report density increased
         incident.priority_score = priority_engine.compute_priority(incident)
         db.commit()
         db.refresh(report)
@@ -81,7 +88,6 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
             "incident_id": incident.id,
         }
 
-    # No duplicate -> create new incident
     title = _make_title(category, payload.description)
     incident = Incident(
         title=title,
@@ -105,23 +111,16 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
         "ai": analysis,
         "duplicate": {"is_duplicate": False, "probability": 0.0, "breakdown": {}},
         "incident_id": incident.id,
-        "priority": {
-            "score": incident.priority_score,
-            "label": score_label(incident.priority_score),
-        },
+        "priority": {"score": incident.priority_score, "label": score_label(incident.priority_score)},
     }
 
 
 def _make_title(category, description):
     labels = {
-        "ROAD_DAMAGE": "Road Damage",
-        "GARBAGE": "Garbage Issue",
-        "ILLEGAL_DUMPING": "Illegal Dumping",
-        "STREETLIGHT": "Streetlight Issue",
-        "DRAINAGE": "Drainage Issue",
-        "WATER_POLLUTION": "Water Pollution",
-        "GREEN_SPACE": "Green Space Issue",
-        "OTHER": "Civic Issue",
+        "ROAD_DAMAGE": "Road Damage", "GARBAGE": "Garbage Issue",
+        "ILLEGAL_DUMPING": "Illegal Dumping", "STREETLIGHT": "Streetlight Issue",
+        "DRAINAGE": "Drainage Issue", "WATER_POLLUTION": "Water Pollution",
+        "GREEN_SPACE": "Green Space Issue", "OTHER": "Civic Issue",
     }
     words = (description or "").split()
     snippet = " ".join(words[:5]) if words else ""

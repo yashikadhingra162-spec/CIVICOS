@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import database
-from routes import reports, incidents, dashboard
+from routes import reports, incidents, dashboard, admin
 
 app = FastAPI(title="CIVICOS API", version="1.0.0")
 
@@ -18,6 +18,7 @@ database.Base.metadata.create_all(bind=database.engine)
 app.include_router(reports.router)
 app.include_router(incidents.router)
 app.include_router(dashboard.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

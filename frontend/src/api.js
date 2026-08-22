@@ -5,7 +5,6 @@ if(!supabaseUrl||!supabaseKey) throw new Error('Missing Supabase configuration.'
 const supabase=createClient(supabaseUrl,supabaseKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
 const REPORTS_KEY='civicos-my-report-ids', CLUSTER_RADIUS_METERS=100;
-const N8N_WEBHOOK_URL=import.meta.env.VITE_N8N_CIVICOS_WEBHOOK_URL||'';
 const normStatus=s=>String(s||'pending').trim().toLowerCase();
 export const statusLabel=s=>normStatus(s).replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 const priorityFor=r=>clamp(Math.round(50+Number(r.verification_count||0)*5-Number(r.downvote_count||0)*10-Number(r.spam_score||0)*.25),5,100);
@@ -27,35 +26,7 @@ export async function getMyReports(){const list=ids();if(!list.length)return{inc
 export async function getIncident(id){const {data,error}=await supabase.from('reports').select('*').eq('id',id).single();if(error)throw error;return normalizeReport(data)}
 export async function getStats(){const rows=await fetchReports();return clusterReports(rows).reduce((s,r)=>{if(r.priority_score>=80)s.critical++;else if(r.priority_score>=60)s.high++;else if(r.priority_score>=40)s.medium++;if(['resolved','verified'].includes(r.status))s.resolved++;return s},{critical:0,high:0,medium:0,resolved:0})}
 export async function getHotspots(){const clusters=clusterReports(await fetchReports());return{hotspots:clusters.filter(x=>x.report_count>1).map(x=>({category:x.category||'other',latitude:x.latitude,longitude:x.longitude,report_count:x.report_count,locations:x.report_count,priority_score:x.priority_score}))}}
-
-async function notifyAuthority(report){
-  if(!N8N_WEBHOOK_URL) return {sent:false,skipped:true};
-  const payload={
-    report_id:report.id,
-    incident_id:report.id,
-    title:report.title,
-    description:report.description,
-    category:report.category,
-    severity:report.priority_label||'LOW',
-    priority_score:report.priority_score,
-    status:report.status,
-    moderation_status:report.moderation_status,
-    address:report.address||'',
-    location:report.address||`${report.latitude}, ${report.longitude}`,
-    latitude:report.latitude,
-    longitude:report.longitude,
-    coordinates:`${report.latitude}, ${report.longitude}`,
-    image_url:Array.isArray(report.image_urls)?report.image_urls[0]||'':'',
-    image_urls:Array.isArray(report.image_urls)?report.image_urls:[],
-    created_at:report.created_at||new Date().toISOString()
-  };
-  try{
-    const response=await fetch(N8N_WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true});
-    if(!response.ok){let detail='n8n notification failed';try{const body=await response.json();detail=body?.message||body?.error||detail}catch{};console.warn('[CIVICOS] authority notification failed:',detail)}
-    return {sent:response.ok,status:response.status};
-  }catch(error){console.warn('[CIVICOS] authority notification request failed:',error);return {sent:false,error:true};}
-}
-
+async function notifyAuthority(report){const payload={report_id:report.id,title:report.title,description:report.description,category:report.category,severity:report.priority_label||'LOW',status:report.status,address:report.address||'',latitude:report.latitude,longitude:report.longitude,image_url:Array.isArray(report.image_urls)?report.image_urls[0]||'':'',created_at:report.created_at||new Date().toISOString()};try{const response=await fetch('/api/notifications/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true});if(!response.ok)console.warn('[CIVICOS] authority notification failed:',await response.text());return{sent:response.ok,status:response.status}}catch(error){console.warn('[CIVICOS] authority notification request failed:',error);return{sent:false,error:true}}}
 export async function createReport(input){const id=crypto.randomUUID(),description=input.description.trim(),category=input.category||inferCategory(description),report={id,title:makeTitle(description),description,category,status:'pending',latitude:Number(input.latitude),longitude:Number(input.longitude),address:input.address||null,image_urls:input.image_url?[input.image_url]:[],spam_score:0,duplicate_score:0,moderation_status:'approved',verification_count:0,downvote_count:0};const {data,error}=await supabase.from('reports').insert(report).select().single();if(error)throw error;remember(id);const saved=data||report;void notifyAuthority(saved);return{report_id:id,incident_id:id,report:normalizeReport(saved)}}
 export async function deleteReport(id){const {error}=await supabase.from('reports').delete().eq('id',id);if(error)throw error;forget(id);return true}
 export async function voteReport(id,type='verify'){type=type==='upvote'?'verify':type==='downvote'?'dispute':type;const {data,error}=await supabase.from('report_votes').insert({report_id:id,vote_type:type,voter_fingerprint:fingerprint()}).select().single();if(error)throw error;return data}

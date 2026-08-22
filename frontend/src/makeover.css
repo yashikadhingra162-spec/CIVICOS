@@ -1,0 +1,37 @@
+/* CIVICOS frontend makeover — visual layer only. No routes, API calls or data logic are changed. */
+:root{
+  --bg:#090b10;--bg-soft:#10131a;--bg-elevated:#171b24;--card:rgba(23,27,36,.88);
+  --border:rgba(166,181,204,.13);--border-strong:rgba(91,157,255,.42);
+  --text:#f2f5fa;--muted:#94a0b3;--accent:#5b9dff;--accent-dark:#3977d6;
+  --shadow:0 20px 60px rgba(0,0,0,.30);
+}
+body{background:radial-gradient(900px 480px at 88% -8%,rgba(73,130,235,.12),transparent 62%),radial-gradient(700px 420px at 0 100%,rgba(47,96,176,.06),transparent 70%),var(--bg);}
+body::before{background-image:linear-gradient(rgba(148,163,184,.014) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.014) 1px,transparent 1px);background-size:44px 44px;}
+
+/* App shell */
+.sidebar{width:270px;padding:24px 15px;background:linear-gradient(180deg,rgba(10,12,17,.96),rgba(12,15,21,.91));border-right-color:rgba(166,181,204,.11);box-shadow:16px 0 50px rgba(0,0,0,.12)}
+.brand{padding:10px 14px 18px;margin:0 0 10px;font-size:22px;letter-spacing:-.045em}.brand-mark{display:grid;place-items:center;width:31px;height:31px;border:1px solid rgba(91,157,255,.35);border-radius:10px;background:linear-gradient(145deg,rgba(91,157,255,.18),rgba(91,157,255,.03));font-size:17px;color:#a9ccff}
+.nav-section-label{padding:0 14px 9px;color:#66758a}.nav-link{min-height:48px;border-radius:14px;padding:12px 14px}.nav-link:hover{background:rgba(255,255,255,.035);border-color:rgba(166,181,204,.11);transform:translateX(3px)}.nav-link.active{background:linear-gradient(90deg,rgba(91,157,255,.18),rgba(91,157,255,.055));border-color:rgba(91,157,255,.30);box-shadow:inset 3px 0 0 #6ba8ff,0 8px 25px rgba(30,73,139,.10)}
+.sidebar-status{padding:14px;border-radius:16px;background:linear-gradient(145deg,rgba(25,30,39,.82),rgba(15,18,25,.82));box-shadow:0 10px 30px rgba(0,0,0,.14)}
+.main{padding:38px clamp(22px,4vw,58px) 52px}.main>*>*{position:relative}
+
+/* Shared surfaces */
+.page-title,.admin-dashboard-header h2{font-size:clamp(30px,3vw,42px);letter-spacing:-.055em}.page-sub{max-width:760px;color:#9aa6b7}
+.card{background:linear-gradient(145deg,rgba(27,32,42,.94),rgba(18,22,30,.88));border-color:rgba(166,181,204,.13);box-shadow:0 12px 35px rgba(0,0,0,.15)}
+.card:hover{transform:translateY(-2px);border-color:rgba(117,166,255,.27);box-shadow:var(--shadow)}
+.btn{min-height:46px;border-radius:14px}.btn-primary{background:linear-gradient(135deg,#6ba8ff,#427fdc);color:#f8fbff;box-shadow:0 12px 28px rgba(66,127,220,.22)}.btn-primary:hover{box-shadow:0 16px 38px rgba(66,127,220,.30)}.btn-secondary{background:rgba(255,255,255,.035);border-color:rgba(166,181,204,.16)}
+input,textarea,select{background:rgba(8,11,16,.70);border-color:rgba(166,181,204,.15)}input:hover,textarea:hover,select:hover{border-color:rgba(166,181,204,.25)}
+.map-wrap{border-radius:22px;border-color:rgba(166,181,204,.16)}.incident-row{background:linear-gradient(135deg,rgba(24,29,38,.86),rgba(15,19,26,.86));border-color:rgba(166,181,204,.12)}
+
+/* Home: more editorial and deliberate without changing content or routes */
+.home-refined{max-width:1360px!important}.home-refined .civ-hero{min-height:clamp(510px,64vh,700px);padding:80px 36px 72px;border-bottom:0}.home-refined .civ-hero::before{width:min(860px,82vw);height:420px;background:radial-gradient(ellipse,rgba(91,157,255,.16),rgba(91,157,255,.035) 50%,transparent 74%)}
+.civ-hero-content{max-width:980px}.civ-eyebrow{background:rgba(18,24,34,.78);border-color:rgba(91,157,255,.28);color:#9fc7ff;padding:8px 14px;box-shadow:0 8px 30px rgba(0,0,0,.14)}.civ-hero h1{font-size:clamp(52px,7.6vw,92px);letter-spacing:-.075em;line-height:.94}.civ-hero h1 .accent{background:linear-gradient(100deg,#77aeff,#4f8ef0);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}.civ-hero-copy{font-size:clamp(16px,1.5vw,19px);max-width:720px}.civ-hero-actions{margin-top:34px}.civ-hero-actions .btn{padding-inline:23px}
+.civ-how{padding-top:54px}.civ-how-head{margin-bottom:54px}.civ-how-head h2{font-size:clamp(34px,4vw,52px)}.civ-how-grid{gap:20px;padding:0}.civ-step{min-height:265px;padding:42px 32px 30px;border-radius:22px;background:linear-gradient(145deg,rgba(28,32,41,.95),rgba(19,23,31,.95));border-color:rgba(166,181,204,.13);overflow:visible}.civ-step::after{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(91,157,255,.055),transparent 40%);border-radius:inherit;pointer-events:none}.civ-step-number{top:-16px;left:26px;width:48px;height:48px;font-size:14px;background:linear-gradient(145deg,#6ba8ff,#427fdc);box-shadow:0 12px 28px rgba(66,127,220,.28)}.civ-step-icon{font-size:39px;color:#78afff}.civ-step:hover{transform:translateY(-4px);border-color:rgba(91,157,255,.32);box-shadow:var(--shadow)}
+.civ-section{padding-top:78px}.civ-section-head{margin-bottom:28px}.civ-section-head h2{font-size:clamp(34px,4.2vw,54px)}.civ-tools{gap:20px}.civ-tool{min-height:265px;padding:28px;border-radius:22px;background:linear-gradient(145deg,rgba(25,30,40,.96),rgba(16,20,28,.94));border-color:rgba(166,181,204,.13)}.civ-tool:hover{transform:translateY(-6px);border-color:rgba(91,157,255,.38);box-shadow:0 24px 55px rgba(0,0,0,.28)}.civ-tool-icon{width:52px;height:52px;border-radius:16px;background:rgba(91,157,255,.10);color:#84b8ff}.civ-tool-link{color:#a9ccff}.civ-status-strip{margin-top:58px}.civ-status-inner{padding:20px 22px;border-radius:20px;background:linear-gradient(135deg,rgba(21,30,45,.72),rgba(16,19,26,.78))}
+
+/* Admin dashboard and report surfaces */
+.admin-dashboard-header,.admin-dashboard .admin-panel,.admin-dashboard .admin-recent{border-color:rgba(166,181,204,.13)}.admin-dashboard .admin-panel,.admin-dashboard .admin-recent{background:linear-gradient(145deg,rgba(27,32,42,.94),rgba(18,22,30,.90));box-shadow:0 14px 38px rgba(0,0,0,.14)}.admin-metric{border-radius:20px;border-color:rgba(166,181,204,.13);background:linear-gradient(145deg,rgba(28,33,43,.98),rgba(19,23,31,.96))}.admin-metric:hover{box-shadow:var(--shadow)}.admin-live{border-color:rgba(91,157,255,.28);background:rgba(91,157,255,.08);color:#b5d4ff}.admin-recent-item{border-radius:16px;background:rgba(9,12,17,.34)}
+
+/* Mobile */
+@media(max-width:900px){.app-shell{display:block}.sidebar{position:sticky;top:0;width:100%;height:auto;min-height:0;padding:12px 14px;flex-direction:row;align-items:center;overflow-x:auto;gap:6px;border-right:0;border-bottom:1px solid var(--border);z-index:30}.brand{flex:none;margin:0;padding:4px 10px;font-size:18px}.brand-mark{width:27px;height:27px}.nav-section-label,.sidebar-bottom{display:none}.nav-link{flex:none;min-height:42px;padding:9px 12px}.nav-link>span:first-child{font-size:15px;width:auto}.main{padding:28px 18px 42px}.home-refined .civ-hero{padding:64px 12px 58px}.civ-how,.civ-section{padding-left:12px;padding-right:12px}}
+@media(max-width:640px){.brand>span:last-child{display:none}.sidebar{gap:4px}.nav-link{padding:9px 10px}.nav-label{font-size:12px}.main{padding:22px 14px 34px}.home-refined .civ-hero{min-height:auto;padding-top:58px}.civ-hero h1{font-size:clamp(44px,14vw,64px)}.civ-hero-actions{display:grid;grid-template-columns:1fr;width:100%;max-width:420px;margin-inline:auto}.civ-how{padding-top:50px}.civ-how-grid{gap:28px}.civ-step{min-height:230px;padding:38px 24px 28px}.civ-tools{gap:14px}.civ-tool{min-height:230px}.civ-section-head{gap:12px}.civ-status-strip{padding:0 12px}}

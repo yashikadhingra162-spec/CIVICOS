@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getStats } from '../api.js';
+import ElectricGaze from '../components/ElectricGaze.jsx';
 
 const actions = [
   { icon: '⌖', title: 'Nearby Issues', text: 'Explore civic problems around you on the live map.', to: '/nearby', button: 'Explore map' },
@@ -21,7 +22,7 @@ export default function Home() {
         <div className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
           <span>●</span> CIVIC NETWORK ACTIVE
         </div>
-        <h1>Make your city<br /><span style={{ color: '#38bdf8' }}>better, together.</span></h1>
+        <h1>Make your city<br /><span>better, together.</span></h1>
         <p>Spot a problem. Report it in seconds. Follow it from verification to resolution.</p>
         <Link to="/report">
           <button className="btn btn-primary" style={{ fontSize: 15, padding: '14px 24px' }}>
@@ -30,21 +31,54 @@ export default function Home() {
         </Link>
       </section>
 
+      <section className="gaze-section" aria-label="CIVICOS visual identity">
+        <div className="gaze-art">
+          <ElectricGaze
+            renderMode="dither"
+            bgMode="none"
+            cellSize={9}
+            coverage={100}
+            contrast={158}
+            density={20}
+            tint="#f0c94b"
+            tintOpacity={18}
+            grayscale={45}
+            animStyle="shimmer"
+            animSpeed={100}
+            animIntensity={60}
+            pfx={{
+              vignette: { enabled: true, intensity: 55 },
+              scanLines: { enabled: true, intensity: 18 },
+              bloom: { enabled: true, intensity: 22 },
+              filmGrain: { enabled: true, intensity: 10 },
+              chromatic: { enabled: false, intensity: 0 },
+              glitch: { enabled: false, intensity: 0 },
+            }}
+          />
+          <div className="gaze-overlay">
+            <span className="eyebrow">CIVICOS // URBAN VISION</span>
+            <h2>See the city<br /><strong>through the noise.</strong></h2>
+            <p>Live reports, mapped incidents and civic intelligence — built for the people who notice what others miss.</p>
+            <Link to="/report" className="btn btn-primary">＋ REPORT AN ISSUE</Link>
+          </div>
+        </div>
+      </section>
+
       {stats && (
         <section className="grid grid-3 mb">
           <div className="card stat-card stat-critical">
             <div className="stat-icon">!</div>
-            <div><div className="stat-value" style={{ color: '#fb7185' }}>{stats.critical}</div><div className="stat-label">Critical issues</div></div>
+            <div><div className="stat-value">{stats.critical}</div><div className="stat-label">Critical issues</div></div>
             <span className="stat-trend">LIVE</span>
           </div>
           <div className="card stat-card stat-high">
             <div className="stat-icon">↑</div>
-            <div><div className="stat-value" style={{ color: '#fb923c' }}>{stats.high}</div><div className="stat-label">High priority</div></div>
+            <div><div className="stat-value">{stats.high}</div><div className="stat-label">High priority</div></div>
             <span className="stat-trend">ACTIVE</span>
           </div>
           <div className="card stat-card stat-resolved">
             <div className="stat-icon">✓</div>
-            <div><div className="stat-value" style={{ color: '#4ade80' }}>{stats.resolved}</div><div className="stat-label">Resolved</div></div>
+            <div><div className="stat-value">{stats.resolved}</div><div className="stat-label">Resolved</div></div>
             <span className="stat-trend">DONE</span>
           </div>
         </section>

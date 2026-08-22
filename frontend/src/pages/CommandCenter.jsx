@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getIncidents, getIncident, getStats, assignIncident, setStatus, verifyIncident, deleteReport } from '../api.js';
 import CivicMap from '../components/CivicMap.jsx';
+import AdminAnalytics from '../components/AdminAnalytics.jsx';
 import './admin-dashboard.css';
 
 const pretty = (s) => String(s || '').replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -26,7 +27,8 @@ export default function CommandCenter() {
 
   const openIncident = async (inc) => {
     setSelected(inc); setDetail(null); setMessage(''); setError(''); setAfterImage(''); setNote('');
-    try { setDetail(await getIncident(inc.id)); } catch (e) { setError(e.message || 'Unable to load report details.'); }
+    try { setDetail(await getIncident(inc.id)); }
+    catch (e) { setError(e.message || 'Unable to load report details.'); }
   };
   const refresh = async (id = selected?.id) => {
     if (!id) return;
@@ -54,7 +56,11 @@ export default function CommandCenter() {
     reader.readAsDataURL(file);
   };
   const current = key(detail?.status);
-  const counts = useMemo(() => ({ total: incidents.length, open: incidents.filter((i) => !['RESOLVED', 'VERIFIED'].includes(key(i.status))).length, resolved: incidents.filter((i) => ['RESOLVED', 'VERIFIED'].includes(key(i.status))).length }), [incidents]);
+  const counts = useMemo(() => ({
+    total: incidents.length,
+    open: incidents.filter((i) => !['RESOLVED', 'VERIFIED'].includes(key(i.status))).length,
+    resolved: incidents.filter((i) => ['RESOLVED', 'VERIFIED'].includes(key(i.status))).length,
+  }), [incidents]);
 
   return <div>
     <section className="admin-dashboard">
@@ -65,6 +71,7 @@ export default function CommandCenter() {
         <div className="admin-metric"><div className="admin-metric-label">Resolved</div><div className="admin-metric-value">{counts.resolved}</div><div className="admin-metric-foot">Resolved or verified</div></div>
         <div className="admin-metric"><div className="admin-metric-label">Critical</div><div className="admin-metric-value">{stats?.critical || 0}</div><div className="admin-metric-foot">Priority reports</div></div>
       </div>
+      <AdminAnalytics incidents={incidents} onSelect={openIncident} />
     </section>
 
     <div className="page-title">Operational Workflow</div><div className="page-sub">Select a report and manage its complete lifecycle.</div>

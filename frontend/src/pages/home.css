@@ -11,6 +11,19 @@
 .civ-hero-copy { max-width:690px; margin:23px auto 0; color:var(--muted); font-size:clamp(15px,1.7vw,18px); line-height:1.7; }
 .civ-hero-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:12px; margin-top:31px; }
 .civ-hero-actions .btn { min-height:50px; }
+
+/* How CIVICOS Works */
+.civ-how { width:min(1180px,100%); margin:0 auto; padding:76px clamp(8px,3vw,36px) 10px; }
+.civ-how-head { text-align:center; margin-bottom:52px; }
+.civ-how-head h2 { margin:0; font-family:'Space Grotesk',sans-serif; font-size:clamp(31px,4vw,46px); letter-spacing:-.045em; color:var(--text); }
+.civ-how-head p { margin:12px auto 0; color:var(--muted); font-size:15px; line-height:1.6; }
+.civ-how-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:36px; padding:0 8px; }
+.civ-step { position:relative; min-height:242px; padding:37px 36px 32px; border:1px solid var(--border); border-radius:10px; background:linear-gradient(145deg,rgba(29,31,36,.98),rgba(24,26,31,.98)); box-shadow:0 14px 34px rgba(0,0,0,.13); }
+.civ-step-number { position:absolute; top:-20px; left:-20px; width:56px; height:56px; display:grid; place-items:center; border-radius:50%; background:#3975c5; color:#dcecff; font-size:16px; font-weight:800; box-shadow:0 8px 20px rgba(22,84,166,.32); }
+.civ-step-icon { display:block; height:49px; color:#5799f2; font-size:42px; line-height:1; font-weight:300; }
+.civ-step h3 { margin:21px 0 0; font-family:'Space Grotesk',sans-serif; font-size:20px; letter-spacing:-.025em; color:var(--text); }
+.civ-step p { max-width:320px; margin:14px 0 0; color:var(--muted); font-size:15px; line-height:1.7; }
+
 .civ-section { width:min(1180px,100%); margin:0 auto; padding:68px clamp(8px,3vw,36px) 0; }
 .civ-section-head { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:23px; }
 .civ-section-kicker { display:block; color:#60748b; font-size:10px; font-weight:800; letter-spacing:.18em; margin-bottom:8px; }
@@ -29,5 +42,5 @@
 .civ-status-inner { border:1px solid var(--border); border-radius:16px; background:rgba(15,30,50,.5); padding:18px 21px; display:flex; align-items:center; gap:13px; color:var(--muted); font-size:13px; }
 .civ-status-inner strong { color:var(--text); }
 .civ-status-light { width:8px; height:8px; flex:none; border-radius:50%; background:#4ade80; box-shadow:0 0 13px rgba(74,222,128,.65); }
-@media (max-width:900px) { .civ-section-head { align-items:flex-start; flex-direction:column; } .civ-section-head p { text-align:left; } .civ-tools { grid-template-columns:1fr; } .civ-tool { min-height:210px; } }
-@media (max-width:640px) { .home-refined .civ-hero { min-height:auto; padding:56px 0 54px; } .civ-hero h1 { font-size:clamp(40px,13vw,60px); } .civ-hero-actions { flex-direction:column; } .civ-hero-actions .btn { width:100%; } .civ-section { padding-top:52px; } .civ-section-head h2 { font-size:34px; } }
+@media (max-width:900px) { .civ-how { padding-top:60px; } .civ-how-grid { grid-template-columns:1fr; gap:32px; max-width:560px; margin:0 auto; } .civ-step { min-height:220px; } .civ-section-head { align-items:flex-start; flex-direction:column; } .civ-section-head p { text-align:left; } .civ-tools { grid-template-columns:1fr; } .civ-tool { min-height:210px; } }
+@media (max-width:640px) { .home-refined .civ-hero { min-height:auto; padding:56px 0 54px; } .civ-hero h1 { font-size:clamp(40px,13vw,60px); } .civ-hero-actions { flex-direction:column; } .civ-hero-actions .btn { width:100%; } .civ-how { padding-top:52px; } .civ-how-head { margin-bottom:42px; } .civ-how-head h2 { font-size:34px; } .civ-how-head p { font-size:14px; } .civ-how-grid { padding:0; } .civ-step { min-height:0; padding:34px 28px 30px; } .civ-step-number { left:-10px; } .civ-section { padding-top:52px; } .civ-section-head h2 { font-size:34px; } }

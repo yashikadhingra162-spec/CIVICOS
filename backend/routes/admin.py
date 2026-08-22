@@ -45,58 +45,85 @@ def _valid_token(token: str | None) -> bool:
     except Exception: return False
 
 def require_admin(request: Request):
-    if not _valid_token(request.cookies.get(COOKIE_NAME)): raise HTTPException(status_code=401, detail="Administrator authentication required")
+    if not _valid_token(request.cookies.get(COOKIE_NAME)):
+        raise HTTPException(status_code=401, detail="Administrator authentication required")
     return True
 
 def _supabase_config():
     url = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL")
-    # Prefer the service-role key for unrestricted server-side admin updates.
-    # If it has not been configured on Vercel yet, fall back to the project's
-    # publishable/anon key so deployments whose RLS policy already permits the
-    # authenticated admin workflow can still update reports.
-    key = (
-        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        or os.getenv("SUPABASE_PUBLISHABLE_KEY")
-        or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
-        or os.getenv("SUPABASE_ANON_KEY")
-        or os.getenv("VITE_SUPABASE_ANON_KEY")
-    )
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY") or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
     if not url or not key:
-        raise HTTPException(
-            status_code=503,
-            detail="Admin database integration is not configured. Set SUPABASE_URL and a SUPABASE_SERVICE_ROLE_KEY (recommended) or Supabase publishable key in Vercel.",
-        )
+        raise HTTPException(status_code=503, detail="Admin database integration is not configured on the server")
     return url.rstrip("/"), key
 
-def _supabase_patch(report_id: str, payload: dict):
+def _supabase_request(path: str, method: str = "GET", payload: dict | None = None, headers: dict | None = None):
     url, key = _supabase_config()
     request = urllib.request.Request(
-        f"{url}/rest/v1/reports?id=eq.{urllib.parse.quote(str(report_id), safe='')}",
-        data=json.dumps(payload).encode(),
-        method="PATCH",
-        headers={
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-        },
+        f"{url}/rest/v1/{path}",
+        data=json.dumps(payload).encode() if payload is not None else None,
+        method=method,
+        headers={"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation", **(headers or {})},
     )
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            data = json.loads(response.read().decode() or "[]")
+        with urllib.request.urlopen(request, timeout=15) as response:
+            raw = response.read().decode() or "[]"
+            return json.loads(raw)
     except urllib.error.HTTPError as error:
         detail = error.read().decode(errors="ignore")
-        raise HTTPException(status_code=502, detail=f"Supabase update failed: {detail or error.reason}")
+        raise HTTPException(status_code=502, detail=f"Supabase request failed: {detail or error.reason}")
     except Exception as error:
-        raise HTTPException(status_code=502, detail=f"Unable to update CIVICOS report: {error}")
-    if not data:
+        raise HTTPException(status_code=502, detail=f"Unable to reach Supabase: {error}")
+
+def _supabase_patch(report_id: str, payload: dict):
+    rows = _supabase_request(f"reports?id=eq.{urllib.parse.quote(str(report_id), safe='')}", method="PATCH", payload=payload)
+    if not rows:
         raise HTTPException(status_code=404, detail="Report not found or the configured Supabase policy did not allow the update")
-    return data[0]
+    return rows[0]
+
+def _data_url_to_extension(value: str) -> tuple[str, bytes, str]:
+    try:
+        header, encoded = value.split(",", 1)
+        if not header.startswith("data:") or ";base64" not in header:
+            raise ValueError
+        mime = header[5:].split(";", 1)[0].strip().lower() or "image/jpeg"
+        if not mime.startswith("image/"):
+            raise ValueError
+        ext = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}.get(mime, "jpg")
+        return ext, base64.b64decode(encoded, validate=True), mime
+    except Exception:
+        raise HTTPException(status_code=400, detail="Completion proof must be a valid base64 image")
+
+def _upload_resolution_image(report_id: str, data_url: str) -> str:
+    """Upload proof image to the configured public/private Supabase storage bucket."""
+    bucket = os.getenv("CIVICOS_REPORTS_BUCKET", "reports")
+    ext, raw, mime = _data_url_to_extension(data_url)
+    if len(raw) > 4 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Completion proof image must be 4 MB or smaller")
+    filename = f"{report_id}/resolution-{int(time.time())}.{ext}"
+    url, key = _supabase_config()
+    req = urllib.request.Request(
+        f"{url}/storage/v1/object/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(filename, safe='/')}",
+        data=raw,
+        method="POST",
+        headers={"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": mime, "x-upsert": "true"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            response.read()
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode(errors="ignore")
+        raise HTTPException(status_code=502, detail=f"Resolution image upload failed: {detail or error.reason}")
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to upload resolution image: {error}")
+    # Prefer a public URL when the bucket is public; for a private bucket the URL is still stored
+    # as canonical object location and can be swapped for a signed URL by the API layer later.
+    return f"{url}/storage/v1/object/public/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(filename, safe='/')}"
 
 @router.post("/login")
 def login(body: LoginBody, response: Response):
     supplied = hashlib.sha256(body.password.encode()).hexdigest()
-    if not hmac.compare_digest(supplied, _expected_password_hash()): raise HTTPException(status_code=401, detail="Incorrect password")
+    if not hmac.compare_digest(supplied, _expected_password_hash()):
+        raise HTTPException(status_code=401, detail="Incorrect password")
     response.set_cookie(COOKIE_NAME, _make_token(), httponly=True, secure=True, samesite="lax", max_age=SESSION_TTL_SECONDS, path="/")
     return {"ok": True}
 
@@ -112,7 +139,8 @@ def logout(response: Response):
 @router.patch("/reports/{report_id}/status")
 def update_report_status(report_id: str, body: StatusBody, _: bool = Depends(require_admin)):
     status = body.status.strip().lower()
-    if status not in VALID_STATUSES: raise HTTPException(status_code=400, detail="Invalid report status")
+    if status not in VALID_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid report status")
     report = _supabase_patch(report_id, {"status": status})
     return {"ok": True, "report": report, "status": status}
 
@@ -123,11 +151,14 @@ def assign_report(report_id: str, body: AssignBody, _: bool = Depends(require_ad
 
 @router.post("/reports/{report_id}/verify")
 def verify_report(report_id: str, body: VerifyBody, _: bool = Depends(require_admin)):
-    report = _supabase_patch(report_id, {"status": "verified"})
-    return {
-        "ok": True,
-        "report": report,
-        "status": "verified",
-        "note": body.note or None,
-        "has_after_image": bool(body.after_image),
-    }
+    patch: dict = {"status": "verified"}
+    if body.note is not None:
+        patch["resolution_note"] = body.note.strip() or None
+    if body.after_image:
+        image_url = _upload_resolution_image(report_id, body.after_image)
+        existing = _supabase_request(f"reports?id=eq.{urllib.parse.quote(str(report_id), safe='')}&select=resolution_image_urls", method="GET")
+        current = existing[0].get("resolution_image_urls") if existing else []
+        current = current if isinstance(current, list) else []
+        patch["resolution_image_urls"] = [*current, image_url]
+    report = _supabase_patch(report_id, patch)
+    return {"ok": True, "report": report, "status": "verified", "note": body.note or None, "has_after_image": bool(body.after_image), "resolution_image_urls": report.get("resolution_image_urls") or []}

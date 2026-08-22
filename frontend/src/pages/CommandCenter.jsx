@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getIncidents, getIncident, getStats, assignIncident, setStatus, verifyIncident } from '../api.js';
+import { getIncidents, getIncident, getStats, assignIncident, setStatus, verifyIncident, deleteReport } from '../api.js';
 import CivicMap from '../components/CivicMap.jsx';
 
 const STATUS_FLOW = ['REPORTED', 'AI_VERIFIED', 'PRIORITIZED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED'];
@@ -15,14 +15,33 @@ export default function CommandCenter() {
   const [verifyResult, setVerifyResult] = useState(null);
   const [showPriorityWhy, setShowPriorityWhy] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => { load(); }, []);
   const load = async () => { const [d, s] = await Promise.all([getIncidents(), getStats()]); setIncidents([...d.incidents].sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))); setStats(s); };
-  const openIncident = async (inc) => { setSelected(inc); setVerifyResult(null); setAfterImage(''); setNote(''); setShowPriorityWhy(false); const d = await getIncident(inc.id); setDetail(d); };
+  const openIncident = async (inc) => { setSelected(inc); setVerifyResult(null); setAfterImage(''); setNote(''); setShowPriorityWhy(false); setDeleteError(''); const d = await getIncident(inc.id); setDetail(d); };
   const refreshSelected = async () => { const d = await getIncident(selected.id); setDetail(d); setSelected(d); await load(); };
   const doAssign = async () => { setBusy(true); try { await assignIncident(selected.id, {}); await refreshSelected(); } finally { setBusy(false); } };
   const doStatus = async (status) => { setBusy(true); try { await setStatus(selected.id, status); await refreshSelected(); } finally { setBusy(false); } };
   const doVerify = async () => { setBusy(true); try { const res = await verifyIncident(selected.id, { after_image: afterImage, note }); setVerifyResult(res); await refreshSelected(); } finally { setBusy(false); } };
+  const doDelete = async () => {
+    if (!detail || busy) return;
+    const confirmed = window.confirm(`Delete this report permanently?\n\n${detail.title}\n\nThis cannot be undone.`);
+    if (!confirmed) return;
+    setBusy(true);
+    setDeleteError('');
+    try {
+      await deleteReport(detail.id);
+      setDetail(null);
+      setSelected(null);
+      setVerifyResult(null);
+      await load();
+    } catch (error) {
+      setDeleteError(error?.message || 'Unable to delete this report.');
+    } finally {
+      setBusy(false);
+    }
+  };
   const handleImage = (e) => { const file = e.target.files[0]; if (!file || file.size > 4 * 1024 * 1024) return; const reader = new FileReader(); reader.onloadend = () => setAfterImage(reader.result); reader.readAsDataURL(file); };
   const currentIdx = detail ? Math.max(0, STATUS_FLOW.indexOf(detail.status)) : -1;
 
@@ -42,6 +61,7 @@ export default function CommandCenter() {
         <div className="workflow-card"><div className="workflow-line compact">{STATUS_FLOW.map((s, i) => <div className={`workflow-item ${i < currentIdx ? 'done' : i === currentIdx ? 'active' : ''}`} key={s}><span className="workflow-dot">{i < currentIdx ? '✓' : i + 1}</span><span>{pretty(s)}</span></div>)}</div></div>
         <div className="mt action-strip">{detail.status === 'PRIORITIZED' && <button className="btn btn-primary btn-small" disabled={busy} onClick={doAssign}>Assign to {detail.department || 'department'}</button>}{detail.status === 'ASSIGNED' && <button className="btn btn-primary btn-small" disabled={busy} onClick={() => doStatus('IN_PROGRESS')}>Start work</button>}{detail.status === 'IN_PROGRESS' && <button className="btn btn-primary btn-small" disabled={busy} onClick={() => doStatus('RESOLVED')}>Mark work complete</button>}{detail.status === 'RESOLVED' && <span className="muted" style={{ fontSize: 12 }}>Add completion proof below to verify the fix.</span>}{detail.status === 'VERIFIED' && <span className="success-text">Resolution verified by CIVICOS</span>}</div>
         {detail.status !== 'VERIFIED' && <div className="mt"><div className="field"><label>Completion proof</label><input type="file" accept="image/*" onChange={handleImage} />{afterImage && <div className="muted mt" style={{ fontSize: 11 }}>Proof image attached</div>}</div><div className="field"><label>Resolution note</label><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Road repaired, pothole filled" /></div><button className="btn btn-secondary btn-small" disabled={busy || detail.status !== 'RESOLVED'} onClick={doVerify}>Verify resolution</button></div>}
+        <div className="mt" style={{ borderTop: '1px solid rgba(255,255,255,.1)', paddingTop: 14 }}><div className="muted" style={{ fontSize: 11, marginBottom: 8 }}>Danger zone</div><button className="btn btn-small" disabled={busy} onClick={doDelete} style={{ background: '#7f1d1d', color: '#fff', border: '1px solid #ef4444' }}>{busy ? 'Deleting…' : '🗑 Delete Report'}</button>{deleteError && <div className="notice mt" style={{ color: '#fecaca' }}>{deleteError}</div>}</div>
         {verifyResult && <div className={`notice ${verifyResult.confidence >= 0.7 ? 'notice-green' : 'notice-purple'} mt`}><strong>{verifyResult.confidence >= 0.7 ? 'Likely resolved' : verifyResult.confidence >= 0.45 ? 'Partial resolution' : 'Incomplete'}</strong><div className="muted mt">Confidence: <b>{Math.round(verifyResult.confidence * 100)}%</b> · {verifyResult.verdict}</div></div>}</div> : <p className="muted">Select an incident from the queue or map.</p>}</div>
     </div></div>;
 }

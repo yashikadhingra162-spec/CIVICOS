@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CIVICOS 🏙️ — Help Rebuild Your City</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      /* Replace the broken custom Leaflet marker with the uploaded CIVICOS pin. */
+      .civicos-location-pin { background: transparent !important; border: 0 !important; }
+      .civicos-location-pin > div {
+        width: 38px !important;
+        height: 46px !important;
+        position: relative !important;
+        transform: translateY(-8px) !important;
+        background: url('/location-pin.png') center / contain no-repeat !important;
+        filter: drop-shadow(0 5px 5px rgba(0,0,0,.38)) !important;
+      }
+      .civicos-location-pin > div > div { display: none !important; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

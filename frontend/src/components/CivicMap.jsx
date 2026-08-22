@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, CircleMarker, Circle } from 'react-leaflet';
 import L from 'leaflet';
 
 const COLORS = {
@@ -47,7 +47,7 @@ export default function CivicMap({
               pathOptions={{ color: '#a855f7', fillColor: '#a855f7', fillOpacity: 0.15 }}
             >
               <Popup>
-                <strong>⚠️ Hotspot</strong>
+                <strong>Hotspot</strong>
                 <br />
                 {h.report_count} reports · {h.category}
               </Popup>
@@ -60,6 +60,39 @@ export default function CivicMap({
             icon={makeIcon(COLORS[inc.sidebarColor || inc.marker_color] || COLORS.orange)}
             eventHandlers={{ click: () => onSelect && onSelect(inc) }}
           >
+            <Tooltip direction="top" offset={[0, -12]} opacity={1} className="incident-preview-tooltip">
+              <div style={{ width: 220 }}>
+                {inc.preview_image ? (
+                  <img
+                    src={inc.preview_image}
+                    alt={`Evidence for incident ${inc.id}`}
+                    style={{
+                      width: '100%',
+                      height: 130,
+                      objectFit: 'cover',
+                      borderRadius: 8,
+                      display: 'block',
+                      marginBottom: 8,
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    height: 80,
+                    borderRadius: 8,
+                    display: 'grid',
+                    placeItems: 'center',
+                    background: '#eef2f7',
+                    color: '#64748b',
+                    fontSize: 12,
+                    marginBottom: 8,
+                  }}>
+                    No photo attached
+                  </div>
+                )}
+                <strong style={{ display: 'block', fontSize: 13 }}>#{inc.id} · {inc.title}</strong>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Priority {inc.priority_score}/100 · {inc.status}</span>
+              </div>
+            </Tooltip>
             <Popup>
               <strong>#{inc.id} · {inc.title}</strong>
               <br />
